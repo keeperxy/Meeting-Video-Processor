@@ -1,0 +1,5 @@
+requests
+questionary
+ffmpeg-python
+google-genai
+python-dotenv>=1.0.0

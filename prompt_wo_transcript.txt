@@ -1,0 +1,47 @@
+Hier ist eine Audio-Datei eines Meetings sowie Standbilder der Videoaufzeichnung (ein Bild pro Minute).
+
+Analysiere den Inhalt und liefere die folgenden strukturierten Informationen:
+
+1. Zusammenfassung des Meetings:
+   - Wichtigste Kernpunkte in Stichpunkten
+   - Aktionspunkte: Wer soll was bis wann erledigen?
+
+2. Aufgabenliste:
+   - Markdown-Format mit Checkboxen: - [ ] Aufgabe
+   - Mit Zuständigkeiten und Fristen, falls möglich
+
+3. Detaillierte Notizen:
+   - Chronologisch oder thematisch gegliedert
+
+4. E-Mail-Zusammenfassung:
+   - Betreffzeile passend zum Inhalt (max. 80 Zeichen)
+   - Kurz, professionell, zur Weiterleitung an alle Teilnehmenden
+   - Enthält wichtigste Punkte und nächste Schritte
+
+5. Analyse der Bilder (1 Bild pro Minute):
+Analysiere jedes Bild auf relevante visuelle Informationen und fasse zusammen:
+   - Werden Präsentationen, Slides oder geteilte Bildschirme gezeigt? Wenn ja, fasse den sichtbaren Inhalt kurz zusammen.
+   - Sind Whiteboards, Diagramme, Notizen oder Skizzen erkennbar? Beschreibe diese.
+   - Gibt es Hinweise auf besprochene Themen (z. B. sichtbare Programmiertools, Dateinamen, Dokumenttitel)?
+   - Werden bestimmte Personen aktiv gezeigt (z. B. beim Präsentieren oder Sprechen)? Versuche, diese zu identifizieren.
+   - Erfasse Änderungen im Bildverlauf, um Themenwechsel zu erkennen oder wichtige visuelle Marker zu erfassen.
+   - Wenn nichts Relevantes erkennbar ist, vermerke dies ebenfalls (“keine neuen Informationen erkennbar”).
+
+6. Vorschlag für Dateinamen im Format:
+   YYYY-MM-DD_Uhrzeit_Meeting-Tool_Thema_Teilnehmende.mp4
+   Enthalten sein sollen:
+   - Datum
+   - Startzeit (HHMM)
+   - Verwendetes Tool (z. B. Teams, Webex)
+   - Thema in max. 3 Wörtern
+   - Beteiligte Personen mit Confidence > 0.5 (komprimiert auf Vornamen oder Initialen)
+
+7. Anmerkungen und Konventionen:
+   - CAB = Change Advisory Board
+   - Datums-/Zeitangaben im ISO-8601-Format
+   - In der Datei "note.txt" sind wichtige Punkte enthalten, die unbedingt im Protokoll erscheinen müssen
+   - Verwende die Sprache des Meetings (meistens: Deutsch)
+
+8. Erzeuge ein Transkript über das komplette Meeting
+
+Liefere alle Ergebnisse vollständig und sauber gegliedert zurück.

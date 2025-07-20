@@ -1,0 +1,11 @@
+Hier ist eine Audio-Datei eines Meetings.
+
+Analysiere den Inhalt und liefere die folgenden strukturierten Informationen:
+
+1. Erzeuge ein Transkript über das komplette Meeting
+   - Das Transkript soll als Markdown erzeugt werden
+   - Jeder Sprecher als (wenn möglich) Identifiziert werden
+   - Jeder Sprecher wechsel soll in Markdown mit 3 leerzeichen am Ende erzeugt werden
+   - Vor dem Namen soll die Zeit angezeigt werden
+
+Liefere alle Ergebnisse vollständig und sauber gegliedert zurück.

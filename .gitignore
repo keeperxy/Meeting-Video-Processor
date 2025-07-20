@@ -1,0 +1,15 @@
+# macOS-Dateien
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv
+
+# eigene lokale Konfiguration
+.env
+.env.local
+.env.*.local
+.env.keys
+.cursorrules
