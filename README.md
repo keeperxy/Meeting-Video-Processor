@@ -41,7 +41,7 @@ sudo apt install handbrake-cli ffmpeg python3 python3-pip
 
 ```bash
 # Repository klonen
-git clone https://github.com/yourusername/meeting-video-processor.git
+git clone https://github.com/keeperxy/meeting-video-processor.git
 cd meeting-video-processor
 
 # Setup ausführen
@@ -414,7 +414,7 @@ python3 -m pytest tests/
 
 ```bash
 # Repository klonen
-git clone https://github.com/yourusername/meeting-video-processor.git
+git clone https://github.com/keeperxy/meeting-video-processor.git
 cd meeting-video-processor
 
 # Dependencies installieren
@@ -469,9 +469,7 @@ Dieses Projekt steht unter der MIT License. Siehe [LICENSE](LICENSE) für Detail
 
 ### Hilfe bekommen
 
-- **Issues:** [GitHub Issues](https://github.com/yourusername/meeting-video-processor/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/yourusername/meeting-video-processor/discussions)
-- **Wiki:** [Projekt-Wiki](https://github.com/yourusername/meeting-video-processor/wiki)
+- **Issues:** [GitHub Issues](https://github.com/keeperxy/meeting-video-processor/issues)
 
 ### Community
 
@@ -483,6 +481,6 @@ Dieses Projekt steht unter der MIT License. Siehe [LICENSE](LICENSE) für Detail
 
 **Entwickelt mit ❤️ für die Meeting-Dokumentation der Zukunft**
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/meeting-video-processor?style=social)](https://github.com/yourusername/meeting-video-processor)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/meeting-video-processor?style=social)](https://github.com/yourusername/meeting-video-processor)
-[![GitHub issues](https://img.shields.io/github/issues/yourusername/meeting-video-processor)](https://github.com/yourusername/meeting-video-processor/issues) 
+[![GitHub stars](https://img.shields.io/github/stars/keeperxy/meeting-video-processor?style=social)](https://github.com/keeperxy/meeting-video-processor)
+[![GitHub forks](https://img.shields.io/github/forks/keeperxy/meeting-video-processor?style=social)](https://github.com/keeperxy/meeting-video-processor)
+[![GitHub issues](https://img.shields.io/github/issues/keeperxy/meeting-video-processor)](https://github.com/keeperxy/meeting-video-processor/issues) 
