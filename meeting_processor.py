@@ -645,10 +645,22 @@ class MeetingProcessor:
         
         # Add audio file
         if self.audio_path.exists():
-            # Check audio file limits
-            audio_size_mb = self.audio_path.stat().st_size / (1024 * 1024)
-            if audio_size_mb > model_limits.get("max_image_size_mb", 7):  # Use image size limit for audio too
-                self.logger.warning(f"Audio file size ({audio_size_mb:.2f} MB) exceeds limit ({model_limits.get('max_image_size_mb', 7)} MB)")
+            # Check audio duration limits (not file size)
+            try:
+                import subprocess
+                result = subprocess.run([
+                    self.config.ffmpeg_path.replace("ffmpeg", "ffprobe"), 
+                    '-v', 'quiet', 
+                    '-show_entries', 'format=duration',
+                    '-of', 'default=noprint_wrappers=1:nokey=1', 
+                    str(self.audio_path)
+                ], capture_output=True, text=True, check=True)
+                audio_duration_hours = float(result.stdout.strip()) / 3600
+                max_audio_hours = model_limits.get("max_audio_length_hours", 8.4)
+                if audio_duration_hours > max_audio_hours:
+                    self.logger.warning(f"Audio duration ({audio_duration_hours:.2f} hours) exceeds limit ({max_audio_hours} hours)")
+            except Exception as e:
+                self.logger.warning(f"Could not check audio duration: {e}")
             files_to_upload.append(('audio', self.audio_path))
         
         # Add frames if they exist
