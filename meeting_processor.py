@@ -314,6 +314,8 @@ class MeetingProcessor:
             
         except Exception as e:
             self.logger.error(f"Error during processing: {str(e)}")
+            # Clean up created files on failure, preserving original video
+            self._cleanup_on_failure()
             raise
     
     def _extract_datetime(self) -> datetime:
@@ -640,6 +642,76 @@ class MeetingProcessor:
         else:
             self.logger.info("DRY RUN: Would create note.txt with user input")
     
+    def _retry_with_exponential_backoff(self, func, max_retries=5, base_delay=60):
+        """
+        Retry a function with exponential backoff for 503 errors.
+        
+        Args:
+            func: Function to retry
+            max_retries: Maximum number of retry attempts
+            base_delay: Base delay in seconds (will be doubled each retry)
+        
+        Returns:
+            Result of the function if successful
+        
+        Raises:
+            Exception: If all retries fail or if a non-503 error occurs
+        """
+        import time
+        
+        for attempt in range(max_retries + 1):  # +1 for initial attempt
+            try:
+                return func()
+            except Exception as e:
+                # Check if it's a 503 error - handle different error structures
+                is_503_error = False
+                
+                # Check for status_code attribute
+                if hasattr(e, 'status_code') and e.status_code == 503:
+                    is_503_error = True
+                
+                # Check for error message containing 503
+                elif hasattr(e, 'message') and '503' in str(e.message):
+                    is_503_error = True
+                
+                # Check for error details containing 503
+                elif hasattr(e, 'details') and '503' in str(e.details):
+                    is_503_error = True
+                
+                # Check for error string containing 503 UNAVAILABLE
+                elif '503' in str(e) and 'UNAVAILABLE' in str(e):
+                    is_503_error = True
+                
+                if is_503_error:
+                    if attempt < max_retries:
+                        delay = base_delay * (2 ** attempt)  # 1, 2, 4, 8, 16 minutes
+                        self.logger.warning(f"503 UNAVAILABLE error (attempt {attempt + 1}/{max_retries + 1}). "
+                                          f"Retrying in {delay} seconds...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        self.logger.error(f"All {max_retries + 1} attempts failed with 503 UNAVAILABLE error")
+                        raise
+                else:
+                    # Non-503 error, don't retry
+                    self.logger.error(f"Non-retryable error: {e}")
+                    raise
+        
+        # This should never be reached, but just in case
+        raise RuntimeError("Unexpected error in retry logic")
+    
+    def _cleanup_on_failure(self):
+        """Clean up created directory and files on failure, preserving original video."""
+        self.logger.info("Cleaning up created files due to failure...")
+        
+        try:
+            if self.target_dir.exists():
+                import shutil
+                shutil.rmtree(self.target_dir)
+                self.logger.info(f"Removed target directory: {self.target_dir}")
+        except Exception as e:
+            self.logger.warning(f"Failed to cleanup target directory: {e}")
+    
     def _upload_to_gemini(self):
         """Upload content to Google Gemini and save results."""
         self.logger.info("Uploading to Google Gemini...")
@@ -780,7 +852,7 @@ class MeetingProcessor:
             if 'note' in uploaded_files:
                 content_parts.append(uploaded_files['note'])
             
-            # Generate content with Gemini
+            # Generate content with Gemini using retry logic
             self.logger.info(f"Generating content with {self.config.gemini_model}...")
             
             # Apply model limits and parameter defaults to generation config
@@ -790,17 +862,22 @@ class MeetingProcessor:
             self.logger.info(f"Using max_output_tokens: {max_output_tokens}")
             self._log_parameter_defaults(parameter_defaults)
             
-            response = client.models.generate_content(
-                model=self.config.gemini_model,
-                contents=content_parts,
-                config=types.GenerateContentConfig(
-                    temperature=parameter_defaults.get("temperature", 0.3),
-                    top_p=parameter_defaults.get("top_p", 0.95),
-                    top_k=parameter_defaults.get("top_k", 64),
-                    candidate_count=parameter_defaults.get("candidate_count", 1),
-                    max_output_tokens=max_output_tokens
+            def generate_content():
+                """Function to generate content with Gemini (for retry logic)."""
+                return client.models.generate_content(
+                    model=self.config.gemini_model,
+                    contents=content_parts,
+                    config=types.GenerateContentConfig(
+                        temperature=parameter_defaults.get("temperature", 0.3),
+                        top_p=parameter_defaults.get("top_p", 0.95),
+                        top_k=parameter_defaults.get("top_k", 64),
+                        candidate_count=parameter_defaults.get("candidate_count", 1),
+                        max_output_tokens=max_output_tokens
+                    )
                 )
-            )
+            
+            # Use retry logic for content generation
+            response = self._retry_with_exponential_backoff(generate_content)
             
             if response.text:
                 # Save to meeting.md
@@ -850,10 +927,8 @@ class MeetingProcessor:
                 shutil.rmtree(self.frames_dir)
                 self.logger.info("Removed frames directory")
             
-            # Remove original video file
-            if Path(self.video_path).exists():
-                Path(self.video_path).unlink()
-                self.logger.info("Removed original video file")
+            # Note: Original video file is preserved (not removed)
+            # This allows for retry attempts and preserves user's original file
         else:
             self.logger.info("DRY RUN: Would clean up temporary files")
 

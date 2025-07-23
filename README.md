@@ -23,6 +23,7 @@ Der **Meeting Video Processor** ist ein leistungsstarkes Python-Tool zur automat
 - 🎯 **Flexible Zielverzeichnis-Auswahl** mit `-d/--directory`
 - 🔧 **Environment-Variablen Verwaltung** (.env + JSON)
 - 🧪 **Dry-Run Modus** für Tests ohne Änderungen
+- 🔄 **Robuste Fehlerbehandlung** mit Retry-Logik für 503-Fehler
 
 ## 🚀 Schnellstart
 
@@ -175,8 +176,8 @@ graph TD
 6. **Frame-Extraktion** - JPEG-Frames alle 60 Sekunden (optional)
 7. **Prompt-Auswahl** - Drei Template-Optionen
 8. **Notizen-Eingabe** - Terminal oder Editor
-9. **Gemini-Upload** - Multi-Datei Upload an Google AI mit konfigurierbaren Limits
-10. **Cleanup** - Temporäre Dateien entfernen
+9. **Gemini-Upload** - Multi-Datei Upload an Google AI mit konfigurierbaren Limits und Retry-Logik
+10. **Cleanup** - Temporäre Dateien entfernen (Original-Video bleibt erhalten)
 
 ## 🛠️ Verwendung
 
@@ -318,6 +319,35 @@ Das Tool validiert automatisch alle Parameter und warnt bei ungültigen Werten:
 ```
 Warning: temperature 2.5 is outside valid range [0.0-2.0], clamping to 2.0
 ```
+
+### Fehlerbehandlung und Retry-Logik
+
+Das Tool implementiert eine robuste Fehlerbehandlung für 503 UNAVAILABLE Fehler von Google Gemini:
+
+#### Retry-Mechanismus
+- **Automatische Wiederholung:** Bei 503-Fehlern wird automatisch bis zu 5x wiederholt
+- **Exponentieller Backoff:** Wartezeiten zwischen 1, 2, 4, 8 und 16 Minuten
+- **Intelligente Erkennung:** Erkennt 503-Fehler in verschiedenen Error-Formaten
+
+#### Fehlerbehandlung
+- **Original-Datei erhalten:** Das ursprüngliche Video bleibt unverändert
+- **Automatische Bereinigung:** Bei Fehlern werden erstellte Dateien und Ordner entfernt
+- **Detailliertes Logging:** Alle Retry-Versuche werden protokolliert
+
+#### Beispiel-Logging
+```
+2025-07-23 11:05:58 - WARNING - 503 UNAVAILABLE error (attempt 1/6). Retrying in 60 seconds...
+2025-07-23 11:06:58 - WARNING - 503 UNAVAILABLE error (attempt 2/6). Retrying in 120 seconds...
+2025-07-23 11:08:58 - WARNING - 503 UNAVAILABLE error (attempt 3/6). Retrying in 240 seconds...
+2025-07-23 11:12:58 - ERROR - All 6 attempts failed with 503 UNAVAILABLE error
+2025-07-23 11:12:58 - INFO - Cleaning up created files due to failure...
+```
+
+#### Nicht-Retrybare Fehler
+- Andere HTTP-Fehler (4xx, 5xx außer 503)
+- Netzwerk-Fehler
+- Authentifizierungs-Fehler
+- Token-Limit-Überschreitungen
 
 ## 📝 Logging und Debugging
 
