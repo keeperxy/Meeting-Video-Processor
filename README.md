@@ -102,6 +102,7 @@ HANDBRAKE_PRESET_NAME=Meeting
 FRAME_INTERVAL=60
 DEFAULT_PROMPT=prompt.txt
 GEMINI_MODEL=gemini-2.5-pro
+PREFERRED_DATE_SOURCE=metadata
 MODEL_LIMITS_FILE=model_limits.json
 DEBUG=false
 DRY_RUN=false
@@ -118,8 +119,36 @@ NO_CLEANUP=false
 | `gemini_model` | Google Gemini Modell | gemini-2.5-pro |
 | `handbrake_preset_file` | JSON-Preset-Datei für HandBrakeCLI | Meeting.json |
 | `handbrake_preset_name` | Name des Presets in der JSON-Datei | Meeting |
+| `PREFERRED_DATE_SOURCE` | Quelle für Datum/Zeit des Target-Ordners (metadata/file_mtime/manual) | metadata |
 | `MODEL_LIMITS_FILE` | Datei mit Gemini Model-Limits | model_limits.json |
 | `parameter_defaults` | Standard-Parameter für Gemini AI | - |
+
+### Datum/Zeit-Quelle konfigurieren
+
+Die `PREFERRED_DATE_SOURCE` Environment-Variable bestimmt, wie das Datum und die Zeit für den Target-Ordner ermittelt werden:
+
+| Wert | Beschreibung | Verhalten |
+|------|--------------|-----------|
+| `metadata` | Video-Metadaten | Extrahiert `creation_time` aus Video-Metadaten via ffprobe |
+| `file_mtime` | Datei-Modifikationszeit | Verwendet die `st_mtime` der Video-Datei |
+| `manual` | Manuelle Eingabe | Fragt den Benutzer nach Datum und Zeit |
+
+**Fallback-Verhalten:** Falls die gewählte Quelle fehlschlägt, wird automatisch zur nächsten Quelle gewechselt:
+- `metadata` → `file_mtime` → `manual`
+- `file_mtime` → `manual`
+- `manual` → Fehler (außer bei Dry-Run)
+
+**Beispiel:**
+```bash
+# Immer Video-Metadaten verwenden
+PREFERRED_DATE_SOURCE=metadata
+
+# Immer Datei-Modifikationszeit verwenden
+PREFERRED_DATE_SOURCE=file_mtime
+
+# Immer manuelle Eingabe fordern
+PREFERRED_DATE_SOURCE=manual
+```
 
 ## 🎯 Verarbeitungs-Pipeline
 
@@ -139,7 +168,7 @@ graph TD
 ### Detaillierte Schritte
 
 1. **Video-Eingabe** - CLI oder interaktive Auswahl
-2. **Zeit-Extraktion** - Video-Metadaten → Datei-Modifikationszeit → Manuelle Eingabe
+2. **Zeit-Extraktion** - Konfigurierbar via PREFERRED_DATE_SOURCE (metadata/file_mtime/manual)
 3. **Zielordner** - Erstellt mit Zeitstempel (YYYY-MM-DD_HH.MM) oder spezifiziertem Verzeichnis
 4. **Video-Konvertierung** - HandBrakeCLI mit JSON-Preset (Meeting.json)
 5. **Audio-Extraktion** - ffmpeg M4A Extraktion

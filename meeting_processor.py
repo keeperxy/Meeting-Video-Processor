@@ -49,6 +49,7 @@ class Config:
     default_prompt: str = os.getenv("DEFAULT_PROMPT", "prompt.txt")
     gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
     gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
+    preferred_date_source: str = os.getenv("PREFERRED_DATE_SOURCE", "metadata")
     output_dir: str = ""
     target_directory: str = ""
     debug: bool = os.getenv("DEBUG", "false").lower() == "true"
@@ -316,6 +317,47 @@ class MeetingProcessor:
             raise
     
     def _extract_datetime(self) -> datetime:
+        """Extract date and time based on PREFERRED_DATE_SOURCE setting."""
+        self.logger.info(f"Extracting date and time using source: {self.config.preferred_date_source}")
+        
+        # Validate preferred_date_source
+        valid_sources = ["metadata", "file_mtime", "manual"]
+        if self.config.preferred_date_source not in valid_sources:
+            self.logger.warning(f"Invalid PREFERRED_DATE_SOURCE '{self.config.preferred_date_source}'. Using 'metadata' as fallback.")
+            self.config.preferred_date_source = "metadata"
+        
+        # Try metadata first if it's the preferred source or if we need to fall back to it
+        if self.config.preferred_date_source == "metadata":
+            dt = self._extract_datetime_from_metadata()
+            if dt:
+                return dt
+            else:
+                self.logger.warning("Metadata extraction failed, falling back to file_mtime")
+                self.config.preferred_date_source = "file_mtime"
+        
+        # Try file modification time if it's the preferred source or as fallback
+        if self.config.preferred_date_source == "file_mtime":
+            dt = self._extract_datetime_from_file_mtime()
+            if dt:
+                return dt
+            else:
+                self.logger.warning("File modification time extraction failed, falling back to manual input")
+                self.config.preferred_date_source = "manual"
+        
+        # Manual input as preferred source or final fallback
+        if self.config.preferred_date_source == "manual":
+            return self._get_manual_datetime()
+        
+        # This should never be reached, but just in case
+        self.logger.error("All date extraction methods failed")
+        if self.config.dry_run:
+            dt = datetime.now()
+            self.logger.info(f"DRY RUN: Using placeholder time: {dt}")
+            return dt
+        else:
+            raise RuntimeError("Could not extract datetime from any source")
+    
+    def _extract_datetime_from_metadata(self) -> Optional[datetime]:
         """Extract date and time from video metadata."""
         self.logger.info("Extracting date and time from video metadata...")
         
@@ -336,29 +378,22 @@ class MeetingProcessor:
                 if creation_time:
                     # Parse ISO format datetime
                     dt = datetime.fromisoformat(creation_time.replace('Z', '+00:00'))
-                    self.logger.info(f"Found creation time: {dt}")
-                    
-                    # Ask user if this is correct
-                    if not self.config.dry_run:
-                        is_correct = questionary.confirm(
-                            f"Is this the correct recording time: {dt.strftime('%Y-%m-%d %H:%M')}?"
-                        ).ask()
-                        if not is_correct:
-                            # Let user input custom datetime
-                            custom_date = questionary.text(
-                                "Enter the correct date (YYYY-MM-DD):"
-                            ).ask()
-                            custom_time = questionary.text(
-                                "Enter the correct time (HH:MM):"
-                            ).ask()
-                            dt = datetime.strptime(f"{custom_date} {custom_time}", "%Y-%m-%d %H:%M")
-                    
+                    self.logger.info(f"Found creation time from metadata: {dt}")
                     return dt
-            
+                else:
+                    self.logger.warning("No creation_time found in video metadata")
+            else:
+                self.logger.warning(f"ffprobe failed with return code: {result.returncode}")
+                
         except Exception as e:
             self.logger.warning(f"Could not extract datetime from metadata: {e}")
         
-        # If metadata extraction failed, try to use file modification time
+        return None
+    
+    def _extract_datetime_from_file_mtime(self) -> Optional[datetime]:
+        """Extract date and time from file modification time."""
+        self.logger.info("Extracting date and time from file modification time...")
+        
         try:
             video_path = Path(self.video_path)
             if video_path.exists():
@@ -366,27 +401,33 @@ class MeetingProcessor:
                 dt = datetime.fromtimestamp(mtime)
                 self.logger.info(f"Using file modification time: {dt}")
                 return dt
+            else:
+                self.logger.warning(f"Video file does not exist: {self.video_path}")
         except Exception as e:
             self.logger.warning(f"Could not use file modification time: {e}")
         
-        # If all else failed, ask user for the recording time
-        self.logger.info("Could not extract creation time from video metadata or file modification time")
-        if not self.config.dry_run:
-            self.logger.info("Please enter the recording date and time manually")
-            custom_date = questionary.text(
-                "Enter the recording date (YYYY-MM-DD):"
-            ).ask()
-            custom_time = questionary.text(
-                "Enter the recording time (HH:MM):"
-            ).ask()
-            dt = datetime.strptime(f"{custom_date} {custom_time}", "%Y-%m-%d %H:%M")
-            self.logger.info(f"Using manually entered time: {dt}")
-            return dt
-        else:
-            # For dry-run, use a placeholder time
+        return None
+    
+    def _get_manual_datetime(self) -> datetime:
+        """Get date and time from manual user input."""
+        self.logger.info("Requesting manual date and time input...")
+        
+        if self.config.dry_run:
             dt = datetime.now()
             self.logger.info(f"DRY RUN: Using placeholder time: {dt}")
             return dt
+        
+        # Ask user for the recording time
+        self.logger.info("Please enter the recording date and time manually")
+        custom_date = questionary.text(
+            "Enter the recording date (YYYY-MM-DD):"
+        ).ask()
+        custom_time = questionary.text(
+            "Enter the recording time (HH:MM):"
+        ).ask()
+        dt = datetime.strptime(f"{custom_date} {custom_time}", "%Y-%m-%d %H:%M")
+        self.logger.info(f"Using manually entered time: {dt}")
+        return dt
     
     def _create_target_directory(self, recording_datetime: datetime):
         """Create target directory with timestamp format or use specified directory."""
