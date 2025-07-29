@@ -927,8 +927,17 @@ class MeetingProcessor:
                 shutil.rmtree(self.frames_dir)
                 self.logger.info("Removed frames directory")
             
-            # Note: Original video file is preserved (not removed)
-            # This allows for retry attempts and preserves user's original file
+            # Remove original video file after successful processing
+            original_video_path = Path(self.video_path)
+            if original_video_path.exists():
+                try:
+                    original_video_path.unlink()
+                    self.logger.info(f"Removed original video file: {original_video_path}")
+                except Exception as e:
+                    self.logger.warning(f"Failed to remove original video file: {e}")
+            
+            # Note: Original video file is preserved (not removed) only during processing
+            # This allows for retry attempts and preserves user's original file during processing
         else:
             self.logger.info("DRY RUN: Would clean up temporary files")
 
